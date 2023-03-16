@@ -22,6 +22,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int create_lock(void);
+int switch_lock(int lock_number, int);
 
 // ulib.c
 int stat(const char*, struct stat*);
