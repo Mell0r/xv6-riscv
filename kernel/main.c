@@ -30,7 +30,9 @@ main()
     iinit();         // inode table
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
+    msg_init();      // msg_lock init
     userinit();      // first user process
+    pr_msg("system started"); // for testing purpose
     __sync_synchronize();
     started = 1;
   } else {
