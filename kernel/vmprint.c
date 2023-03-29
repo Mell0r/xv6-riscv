@@ -12,7 +12,7 @@ void print_pages(pagetable_t pagetable, int level, int last_accessed) {
         pte_t pte = pagetable[i];
         if(pte & PTE_V) {
             if ((pte & PTE_A) | !last_accessed) {
-                for (int k = 0; k < level; k++)
+                for (int k = 0; k <= level; k++)
                     printf(" ..");
                 printf("%d: pte %p pa %p | flags: Valid %d, Readable %d, Writable %d, Executable %d, User %d, Global %d, Accessed %d, Dirty %d\n", 
                 i, pte, PTE2PA(pte), (pte & PTE_V) > 0, 
