@@ -11,12 +11,12 @@
 #include "defs.h"
 #include "proc.h"
 
-#define BUFF_SZ (2 << 20)
+#define BUFF_SZ (10000)
 
 static char buffer[BUFF_SZ];
 static struct spinlock msg_lock;
 static const char *ticks_prefix = "[";
-static const char *ticks_postfix = "] ";
+static const char *ticks_postfix = "]\n";
 static int front = 0, top = 0, words_count = 0;
 
 void msg_init() {
@@ -50,7 +50,7 @@ static void append_char(char c) {
         front++;
         if (words_count == 0)
             return;
-        while (buffer[inc_front()] != '\n');
+        while (buffer[inc_front()] != '\0');
         words_count--;
     }
 }
@@ -143,7 +143,7 @@ void pr_msg(const char *fmt, ...)
     append_fstr(fmt, ap);
     va_end(ap);
 
-    append_char('\n');
+    append_char('\0');
     words_count++;
 
     release(&msg_lock);
@@ -151,10 +151,22 @@ void pr_msg(const char *fmt, ...)
 
 uint64 sys_dmesg(void)
 {
+    acquire(&msg_lock);
+
+    uint64 addr;
+    argaddr(0, &addr);
     int i = front;
+    int count = 0;
     do {
-        consputc(buffer[i]);
+        if (copyout(myproc()->pagetable, addr, buffer + i, sizeof(char)) < 0) {
+            release(&msg_lock);
+            return -1;
+        }
+        count++;
+        addr += sizeof(char);
         i = (i + 1) % BUFF_SZ;
     } while (i != top);
-    return 0;
+
+    release(&msg_lock);
+    return count;
 }
