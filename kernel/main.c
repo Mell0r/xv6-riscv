@@ -4,6 +4,8 @@
 #include "riscv.h"
 #include "defs.h"
 
+#include "dmesg.h"
+
 volatile static int started = 0;
 
 // start() jumps here in supervisor mode on all CPUs.
@@ -28,7 +30,11 @@ main()
     iinit();         // inode table
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
+    msg_init();      // msg_lock init
     userinit();      // first user process
+    pr_msg("%d system started %x\nhello world", 5, 200014); // for testing purpose
+    pr_msg("aaaaaaaaaa"); // for testing purpose
+    pr_msg("%d%d%d\n%d%d%d", 1, 2, 3, 4, 5, 6); // for testing purpose
     __sync_synchronize();
     started = 1;
   } else {
