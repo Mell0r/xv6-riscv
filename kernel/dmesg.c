@@ -155,18 +155,23 @@ uint64 sys_dmesg(void)
 
     uint64 addr;
     argaddr(0, &addr);
-    int i = front;
-    int count = 0;
-    do {
-        if (copyout(myproc()->pagetable, addr, buffer + i, sizeof(char)) < 0) {
+    if (front < top) {
+        if (copyout(myproc()->pagetable, addr, buffer + front, sizeof(char) * (top - front)) < 0) {
             release(&msg_lock);
             return -1;
         }
-        count++;
-        addr += sizeof(char);
-        i = (i + 1) % BUFF_SZ;
-    } while (i != top);
-
-    release(&msg_lock);
-    return count;
+        release(&msg_lock);
+        return top - front;
+    } else {
+        if (copyout(myproc()->pagetable, addr, buffer + front, sizeof(char) * (BUFF_SZ - front)) < 0) {
+            release(&msg_lock);
+            return -1;
+        }
+        if (copyout(myproc()->pagetable, addr + sizeof(char) * (BUFF_SZ - front), buffer, sizeof(char) * top) < 0) {
+            release(&msg_lock);
+            return -1;
+        }
+        release(&msg_lock);
+        return BUFF_SZ - front + top;
+    }
 }
