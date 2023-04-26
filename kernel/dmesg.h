@@ -1,0 +1,1 @@
+void pr_msg(int type, const char *fmt, ...);
