@@ -10,14 +10,16 @@
 #include "riscv.h"
 #include "defs.h"
 #include "proc.h"
+#include "dmesg.h"
 
-#define BUFF_SZ (10000)
+#define BUFF_SZ (1000)
 
 static char buffer[BUFF_SZ];
 static struct spinlock msg_lock;
 static const char *ticks_prefix = "[";
-static const char *ticks_postfix = "]\n";
+static const char *ticks_postfix = "] ";
 static int front = 0, top = 0, words_count = 0;
+static int log_flags[4] = { 1, 1, 1, 1 };
 
 void msg_init() {
     initlock(&msg_lock, "msg_lock");
@@ -30,27 +32,18 @@ void append_to_buffer(const char *str, int len) {
     }
 }
 
-int inc_top() {
-    int res = top;
-    top = (top + 1) % BUFF_SZ;
-    return res;
-}
-
-int inc_front() {
-    int res = front;
-    front = (front + 1) % BUFF_SZ;
-    return res;
-}
-
 static const char digits[] = "0123456789abcdef";
 
 static void append_char(char c) {
-    buffer[inc_top()] = c;
+    buffer[top] = c;
+    top = (top + 1) % BUFF_SZ;
     if (top == front) {
         front++;
         if (words_count == 0)
             return;
-        while (buffer[inc_front()] != '\0');
+        while (buffer[front] != '\0')
+            front = (front + 1) % BUFF_SZ;
+        front = (front + 1) % BUFF_SZ;
         words_count--;
     }
 }
@@ -112,7 +105,7 @@ void append_fstr(const char *fmt, va_list ap) {
             if ((s = va_arg(ap, char *)) == 0)
                 s = "(null)";
             for (; *s; s++)
-                append_char(c);
+                append_char(*s);
             break;
         case '%':
             append_char('%');
@@ -127,13 +120,15 @@ void append_fstr(const char *fmt, va_list ap) {
     va_end(ap);
 }
 
-void pr_msg(const char *fmt, ...)
+void pr_msg(int type, const char *fmt, ...)
 {
     acquire(&msg_lock);
+    if (type >= 0 && !log_flags[type]) {
+        release(&msg_lock);
+        return;
+    }
 
-    acquire(&tickslock);
     int current_ticks = ticks;
-    release(&tickslock);
 
     va_list ap;
     va_start(ap, fmt);
@@ -147,6 +142,15 @@ void pr_msg(const char *fmt, ...)
     words_count++;
 
     release(&msg_lock);
+}
+
+uint64 sys_fflags(void) {
+    acquire(&msg_lock);
+    argint(0, &log_flags[1]);
+    argint(1, &log_flags[2]);
+    argint(2, &log_flags[3]);
+    release(&msg_lock);
+    return 0;
 }
 
 uint64 sys_dmesg(void)

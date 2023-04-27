@@ -1,1 +1,1 @@
-void pr_msg(const char *fmt, ...);
+void pr_msg(int type, const char *fmt, ...);

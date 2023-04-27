@@ -4,7 +4,7 @@
 
 int main()
 {
-  const int SZ = 10000;
+  const int SZ = 1000;
   char buff[SZ];
   int res = dmesg(buff);
   buff[SZ - 1] = 0;
