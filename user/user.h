@@ -39,3 +39,6 @@ void free(void*);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+
+int symlink(const char*, const char*);
+int readlink(const char*, char*);

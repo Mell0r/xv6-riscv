@@ -2,6 +2,7 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/fs.h"
+#include "kernel/param.h"
 
 char*
 fmtname(char *path)
@@ -64,9 +65,27 @@ ls(char *path)
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+      printf("%s %d %d %d", fmtname(buf), st.type, st.ino, st.size);
+      if (st.type == T_SYMLINK) {
+        char dest[MAXPATH];
+        if (readlink(buf, dest) < 0) {
+          printf("ls: cannot read symbolic link %s\n", buf);
+          continue;
+        }
+        printf(" | %s", dest);
+      }
+      printf("\n");
     }
     break;
+  case T_SYMLINK: {
+    char dest[MAXPATH];
+    if (readlink(buf, dest) < 0) {
+      printf("ls: cannot read symbolic link %s\n", buf);
+      break;
+    }
+    printf("%s %d %d %l | %s\n", fmtname(path), st.type, st.ino, st.size, dest);
+    break;
+  }
   }
   close(fd);
 }
